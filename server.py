@@ -3,6 +3,7 @@ from urllib import request
 from flask import Flask, Response, request
 import pymongo
 import json
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 
@@ -18,9 +19,10 @@ except:
 def get_some_users():
     try:
         data = list(db.users.find())
-        print(data)
+        for user in data:
+            user["_id"] = str(user["_id"])
         return Response(
-            response=json.dumps({"message":"success"}),
+            response=json.dumps(data),
             status=200,
             mimetype="application/json"
         )
@@ -50,7 +52,39 @@ def create_user():
         print(ex)
         print("******")
 
+@app.route("/users/<id>", methods=["PATCH"])
+def update_user(id):
+    try:
+        dbResponse = db.users.update_one(
+            {"_id": ObjectId(id)},
+            {"$set":{"name":request.form["name"], "lastName":request.form["lastName"]}}
+        )
+        # for attr in dir(dbResponse):
+        #     print(f"*****{attr}*****")
+        
+        if dbResponse.modified_count == 1:
+            return Response(
+                response=json.dumps({"message":"User has been updated"}),
+                status=500,
+                mimetype="application/json"
+            )
+        
+        else:
+            return Response(
+                response=json.dumps({"message":"Nothing to update"}),
+                status=500,
+                mimetype="application/json"
+            )
 
+    except Exception as ex:
+        print("*********")
+        print(ex)
+        print("*********")
+        return Response(
+            response=json.dumps({"message":"user cannot be updated"}),
+            status=500,
+            mimetype="application/json"
+        )
 
 if __name__ == '__main__':
     app.run(port=80, debug=True)
