@@ -1,5 +1,6 @@
 from distutils.log import debug
 from urllib import request
+from winreg import DisableReflectionKey
 from flask import Flask, Response, request
 import pymongo
 import json
@@ -82,6 +83,35 @@ def update_user(id):
         print("*********")
         return Response(
             response=json.dumps({"message":"user cannot be updated"}),
+            status=500,
+            mimetype="application/json"
+        )
+    
+@app.route("/users/<id>", methods=["DELETE"])
+def delete_user(id):
+    try:
+        dbResponse = db.users.delete_one({"_id":ObjectId(id)})
+        # for attr in dir(dbResponse):
+        #     print(f"*****{attr}*****")
+        if dbResponse.deleted_count == 1:
+            return Response(
+                    response=json.dumps({"message":"User has been deleted", "id":f"{id}"}),
+                    status=500,
+                    mimetype="application/json"
+                )
+
+        return Response(
+                    response=json.dumps({"message":"User not found", "id":f"{id}"}),
+                    status=500,
+                    mimetype="application/json"
+                )
+
+    except Exception as ex:
+        print("*********")
+        print(ex)
+        print("*********")
+        return Response(
+            response=json.dumps({"message":"user cannot be deleted"}),
             status=500,
             mimetype="application/json"
         )
